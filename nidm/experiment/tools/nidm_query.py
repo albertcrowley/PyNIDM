@@ -40,7 +40,7 @@ import csv
 from nidm.experiment.Query import sparql_query_nidm, GetParticipantIDs,GetProjectInstruments,GetProjectsUUID,GetInstrumentVariables,GetDataElements,GetBrainVolumes,GetBrainVolumeDataElements,getCDEs
 import click
 from nidm.experiment.tools.click_base import cli
-from nidm.experiment.tools.rest import restParser
+from nidm.experiment.tools.rest import RestParser
 from json import dumps, loads
 
 
@@ -137,7 +137,8 @@ def query(nidm_file_list, cde_file_list, query_file, output_file, get_participan
         else:
             print(datael.to_string())
     elif uri:
-        df = restParser(nidm_file_list.split(','), uri, int(verbosity))
+        restParser = RestParser()
+        df = restParser.run(nidm_file_list.split(','), uri, int(verbosity))
         if j:
             print (dumps(df, indent=2))
         else:
