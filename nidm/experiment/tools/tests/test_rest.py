@@ -6,7 +6,7 @@ import rdflib
 
 from nidm.experiment import Project, Session, AssessmentAcquisition, AssessmentObject, Acquisition, AcquisitionObject, Query
 from nidm.core import Constants
-from nidm.experiment.tools.rest import restParser
+from nidm.experiment.tools.rest import RestParser
 import os
 from pathlib import Path
 from rdflib import Graph, util, URIRef
@@ -139,7 +139,8 @@ def test_uri_project_list():
     with open("uritest2.ttl",'w') as f:
         f.write(project.serializeTurtle())
 
-    result = restParser(['uritest.ttl', 'uritest2.ttl'], '/projects')
+    restParser = RestParser()
+    result = restParser.run(['uritest.ttl', 'uritest2.ttl'], '/projects')
 
 
     project_uuids = []
@@ -170,7 +171,8 @@ def test_uri_project_id():
     with open("uri2test2.ttl",'w') as f:
         f.write(project.serializeTurtle())
 
-    result = restParser(['uri2test.ttl', 'uri2test2.ttl'], '/projects/{}_123456'.format(Query.matchPrefix(Constants.NIIRI)) )
+    restParser = RestParser()
+    result = restParser.run(['uri2test.ttl', 'uri2test2.ttl'], '/projects/{}_123456'.format(Query.matchPrefix(Constants.NIIRI)) )
 
     assert type(result) == dict
     assert result["dct:description"] == "1234356 Test investigation"
@@ -184,7 +186,8 @@ def test_uri_projects_subjects_1():
     global test_p2_subject_uuids
 
     proj_uuid = 'p2'
-    result = restParser([REST_TEST_FILE], '/projects/{}/subjects'.format(proj_uuid), 0)
+    restParser = RestParser()
+    result = restParser.run([REST_TEST_FILE], '/projects/{}/subjects'.format(proj_uuid), 0)
 
     assert type(result) == list
     assert len(result) == 2
@@ -196,13 +199,14 @@ def test_uri_projects_subjects_1():
 def test_uri_projects_subjects_id():
     global test_person_uuid
 
-    result = restParser(['./cmu_a.nidm.ttl'], '/projects')
+    restParser = RestParser()
+    result = restParser.run(['./cmu_a.nidm.ttl'], '/projects')
     project = result[0]
-    result = restParser(['./cmu_a.nidm.ttl'], '/projects/{}/subjects'.format(project))
+    result = restParser.run(['./cmu_a.nidm.ttl'], '/projects/{}/subjects'.format(project))
     subject = result[0]
 
     uri = '/projects/{}/subjects/{}'.format(project,subject)
-    result = restParser(['./cmu_a.nidm.ttl'], uri, 0)
+    result = restParser.run(['./cmu_a.nidm.ttl'], uri, 0)
 
     assert type(result) == dict
     assert result['uuid'] == subject
@@ -239,9 +243,9 @@ def test_get_software_agents():
 
 
 def test_brain_vols():
-
-    projects  = restParser(BRAIN_VOL_FILES, '/projects')
-    subjects = restParser(BRAIN_VOL_FILES, '/projects/{}/subjects'.format(projects[0]))
+    restParser = RestParser()
+    projects  = restParser.run(BRAIN_VOL_FILES, '/projects')
+    subjects = restParser.run(BRAIN_VOL_FILES, '/projects/{}/subjects'.format(projects[0]))
     subject = subjects[0]
 
     data = Query.GetDerivativesDataForSubject(BRAIN_VOL_FILES, None, subject)
@@ -255,11 +259,12 @@ def test_brain_vols():
 
 
 def test_GetParticipantDetails():
-    projects  = restParser(BRAIN_VOL_FILES, '/projects')
+    restParser = RestParser()
+    projects  = restParser.run(BRAIN_VOL_FILES, '/projects')
     project = projects[0]
     import time
     start = time.time()
-    subjects = restParser(BRAIN_VOL_FILES, '/projects/{}/subjects'.format(projects[0]))
+    subjects = restParser.run(BRAIN_VOL_FILES, '/projects/{}/subjects'.format(projects[0]))
     subject = subjects[0]
 
     import time
@@ -281,10 +286,11 @@ def test_GetParticipantDetails():
 
 
 def test_CheckSubjectMatchesFilter():
+    restParser = RestParser()
     print ("brain vol = " + str(BRAIN_VOL_FILES))
-    projects  = restParser(BRAIN_VOL_FILES, '/projects')
+    projects  = restParser.run(BRAIN_VOL_FILES, '/projects')
     project = projects[0]
-    subjects = restParser(BRAIN_VOL_FILES, '/projects/{}/subjects'.format(projects[0]))
+    subjects = restParser.run(BRAIN_VOL_FILES, '/projects/{}/subjects'.format(projects[0]))
     subject = subjects[0]
 
     derivatives = Query.GetDerivativesDataForSubject(BRAIN_VOL_FILES, project, subject)
