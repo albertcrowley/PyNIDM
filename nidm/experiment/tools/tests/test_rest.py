@@ -159,26 +159,18 @@ def test_uri_project_list():
 
 def test_uri_project_id():
 
-    kwargs={Constants.NIDM_PROJECT_NAME:"FBIRN_PhaseII",Constants.NIDM_PROJECT_IDENTIFIER:9610,Constants.NIDM_PROJECT_DESCRIPTION:"1234356 Test investigation"}
-    project = Project(uuid="_123456",attributes=kwargs)
-    #save a turtle file
-    with open("uri2test.ttl",'w') as f:
-        f.write(project.serializeTurtle())
-
-    kwargs={Constants.NIDM_PROJECT_NAME:"FBIRN_PhaseIII",Constants.NIDM_PROJECT_IDENTIFIER:1200,Constants.NIDM_PROJECT_DESCRIPTION:"Test investigation2"}
-    project = Project(uuid="_654321",attributes=kwargs)
-    #save a turtle file
-    with open("uri2test2.ttl",'w') as f:
-        f.write(project.serializeTurtle())
-
+    # try with the real brain volume files
     restParser = RestParser()
-    result = restParser.run(['uri2test.ttl', 'uri2test2.ttl'], '/projects/{}_123456'.format(Query.matchPrefix(Constants.NIIRI)) )
+    result = restParser.run(BRAIN_VOL_FILES, '/projects')
+    project = result[0]
+    result = restParser.run(BRAIN_VOL_FILES, '/projects/{}'.format(project))
 
-    assert type(result) == dict
-    assert result["dct:description"] == "1234356 Test investigation"
-
-    os.remove("uri2test.ttl")
-    os.remove("uri2test2.ttl")
+    assert 'dctypes:title' in result
+    assert 'sio:Identifier' in result
+    assert 'subjects' in result
+    assert len(result['subjects']) > 2
+    assert 'data_elements' in result
+    assert len(result['data_elements']) > 2
 
 
 
@@ -187,7 +179,7 @@ def test_uri_projects_subjects_1():
 
     proj_uuid = 'p2'
     restParser = RestParser()
-    result = restParser.run([REST_TEST_FILE], '/projects/{}/subjects'.format(proj_uuid), 0)
+    result = restParser.run([REST_TEST_FILE], '/projects/{}/subjects'.format(proj_uuid))
 
     assert type(result) == list
     assert len(result) == 2
@@ -206,7 +198,7 @@ def test_uri_projects_subjects_id():
     subject = result[0]
 
     uri = '/projects/{}/subjects/{}'.format(project,subject)
-    result = restParser.run(['./cmu_a.nidm.ttl'], uri, 0)
+    result = restParser.run(['./cmu_a.nidm.ttl'], uri)
 
     assert type(result) == dict
     assert result['uuid'] == subject

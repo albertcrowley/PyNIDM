@@ -137,19 +137,15 @@ def query(nidm_file_list, cde_file_list, query_file, output_file, get_participan
         else:
             print(datael.to_string())
     elif uri:
-        restParser = RestParser()
-        df = restParser.run(nidm_file_list.split(','), uri, int(verbosity))
+        restParser = RestParser(verbosity_level = int(verbosity))
         if j:
-            print (dumps(df, indent=2))
+            restParser.setOutputFormat(RestParser.JSON_FORMAT)
         else:
-            if type(df) == list:
-                for x in df:
-                    print (x)
-            elif type(df) == dict:
-                for k in df.keys():
-                    print (str(k) + ' ' + str(df[k]))
-            else:
-                print (df.to_string())
+            restParser.setOutputFormat(RestParser.CLI_FORMAT)
+        df = restParser.run(nidm_file_list.split(','), uri)
+
+        print (df)
+
     elif get_dataelements_brainvols:
         brainvol = GetBrainVolumeDataElements(nidm_file_list=nidm_file_list)
          #if output file parameter specified
