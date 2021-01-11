@@ -50,15 +50,10 @@ def setup():
     projects = restParser.run(BRAIN_VOL_FILES, '/projects')
     for p in projects:
         proj_info = restParser.run(BRAIN_VOL_FILES, '/projects/{}'.format(p))
-        print ("!!! {}".format(p))
-        print ("!!! {}".format(proj_info))
-        print ("---")
         if type(proj_info) == dict and 'dctypes:title' in proj_info.keys() and proj_info['dctypes:title'] == 'ABIDE CMU_a Site':
             cmu_test_project_uuid = p
             break
     subjects = restParser.run(BRAIN_VOL_FILES, '/projects/{}/subjects'.format(cmu_test_project_uuid))
-    print ("^^^ {}".format(cmu_test_project_uuid))
-    print (subjects)
     cmu_test_subject_uuid = subjects['uuid'][0]
 
 

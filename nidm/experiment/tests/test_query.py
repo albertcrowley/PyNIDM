@@ -37,15 +37,13 @@ USE_GITHUB_DATA = True
 def setup():
     global cmu_test_project_uuid, cmu_test_subject_uuid
 
-    environ['BLAZEGRAPH_URL'] = 'http://192.168.56.101:9999/blazegraph/sparql'
-
     projects = Query.GetProjectsUUID(ABIDE_FILES)
     for p in projects:
         proj_info = nidm.experiment.Navigate.GetProjectAttributes(ABIDE_FILES, p)
         if 'dctypes:title' in proj_info.keys() and proj_info['dctypes:title'] == 'ABIDE CMU_a Site':
             cmu_test_project_uuid = p
             break
-    subjects = Query.GetParticipantIDs(ABIDE_FILES, cmu_test_project_uuid)
+    subjects = Query.GetParticipantIDs(ABIDE_FILES)
     cmu_test_subject_uuid = subjects['uuid'][0]
 
 
@@ -96,7 +94,7 @@ def test_GetProjects():
     project_list = Query.GetProjectsUUID(["test_gp.ttl"])
 
     remove("test_gp.ttl")
-    assert URIRef(Constants.NIIRI + "_123456") in project_list
+    assert Constants.NIIRI + "_123456" in [ str(x) for x in project_list]
 
 def test_GetParticipantIDs():
 
@@ -123,9 +121,10 @@ def test_GetParticipantIDs():
     assert (participant_list['ID'].str.contains('8888').any())
 
 def test_GetProjectInstruments():
-
-    kwargs={Constants.NIDM_PROJECT_NAME:"FBIRN_PhaseII",Constants.NIDM_PROJECT_IDENTIFIER:9610,Constants.NIDM_PROJECT_DESCRIPTION:"Test investigation"}
-    project = Project(uuid="_123456",attributes=kwargs)
+    kwargs = {Constants.NIDM_PROJECT_NAME: "FBIRN_PhaseII", Constants.NIDM_PROJECT_IDENTIFIER: 9610,
+              Constants.NIDM_PROJECT_DESCRIPTION: "Test investigation"}
+    proj_uuid = "_123456gpi"
+    project = Project(uuid=proj_uuid, attributes=kwargs)
 
     session = Session(project)
     acq = AssessmentAcquisition(session)

@@ -81,6 +81,8 @@ def sparql_query_nidm(nidm_file_list,query, output_file=None, return_graph=False
             for key in content["head"]['vars']:
                 columns[key] = [x[key]['value'] for x in content['results']['bindings']]
             df = pd.DataFrame(data=columns)
+            if (output_file is not None):
+                df.to_csv(output_file)
             return df
 
         except Exception as e:
