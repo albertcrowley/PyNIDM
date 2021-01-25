@@ -87,6 +87,7 @@ def sparql_query_nidm(nidm_file_list,query, output_file=None, return_graph=False
 
         except Exception as e:
             print("Exception while communicating with blazegraph at {}: {}".format(environ['BLAZEGRAPH_URL'],e))
+            print(f"QUERY WAS: {query}")
 
 
     #query result list
@@ -621,7 +622,7 @@ def GetProjectDataElements(nidm_file_list, project_id):
     # if this isn't already a URI, make it one.
     # calls from the REST api don't include the URI
     project = project_id
-    if project_id.find('http') < 0:
+    if project and project_id.find('http') < 0:
         project = Constants.NIIRI[project_id]
 
     for file in nidm_file_list:

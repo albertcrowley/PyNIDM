@@ -25,54 +25,54 @@ test_p2_subject_uuids = []
 cmu_test_project_uuid = None
 cmu_test_subject_uuid = None
 
-@pytest.fixture(scope="module", autouse="True")
-def setup():
-    global cmu_test_project_uuid, cmu_test_subject_uuid, OPENNEURO_PROJECT_URI, OPENNEURO_SUB_URI
-
-    if Path(REST_TEST_FILE).is_file():
-        os.remove(REST_TEST_FILE)
-    makeTestFile(filename=REST_TEST_FILE, params={'PROJECT_UUID': 'p1', 'PROJECT2_UUID': 'p2'})
-
-    for f in ['./cmu_a.nidm.ttl', 'caltech.nidm.ttl']:
-        if Path(f).is_file():
-            os.remove(f)
-
-    if not Path('./cmu_a.nidm.ttl').is_file():
-        urllib.request.urlretrieve (
-            "https://raw.githubusercontent.com/dbkeator/simple2_NIDM_examples/master/datasets.datalad.org/abide/RawDataBIDS/CMU_a/nidm.ttl",
-            "cmu_a.nidm.ttl"
-        )
-
-    if not Path('./caltech.nidm.ttl').is_file():
-        urllib.request.urlretrieve (
-            "https://raw.githubusercontent.com/dbkeator/simple2_NIDM_examples/master/datasets.datalad.org/abide/RawDataBIDS/Caltech/nidm.ttl",
-            "caltech.nidm.ttl"
-        )
-
-    restParser = RestParser(output_format=RestParser.OBJECT_FORMAT)
-    projects = restParser.run(BRAIN_VOL_FILES, '/projects')
-    for p in projects:
-        proj_info = restParser.run(BRAIN_VOL_FILES, '/projects/{}'.format(p))
-        if 'dctypes:title' in proj_info.keys() and proj_info['dctypes:title'] == 'ABIDE CMU_a Site':
-            cmu_test_project_uuid = p
-            break
-    subjects = restParser.run(BRAIN_VOL_FILES, '/projects/{}/subjects'.format(cmu_test_project_uuid))
-    cmu_test_subject_uuid = subjects['uuid'][0]
-
-
-    if not Path('./ds000168.nidm.ttl').is_file():
-        urllib.request.urlretrieve (
-            "https://raw.githubusercontent.com/dbkeator/simple2_NIDM_examples/master/datasets.datalad.org/openneuro/ds000168/nidm.ttl",
-            "ds000168.nidm.ttl"
-        )
-
-    projects2 = restParser.run(OPENNEURO_FILES, '/projects')
-    for p in projects2:
-        proj_info = restParser.run(OPENNEURO_FILES, '/projects/{}'.format(p))
-        if 'dctypes:title' in proj_info.keys() and proj_info['dctypes:title'] == 'Offline Processing in Associative Learning':
-            OPENNEURO_PROJECT_URI = p
-    subjects = restParser.run(OPENNEURO_FILES, '/projects/{}/subjects'.format(OPENNEURO_PROJECT_URI))
-    OPENNEURO_SUB_URI = subjects['uuid'][0]
+# @pytest.fixture(scope="module", autouse="True")
+# def setup():
+#     global cmu_test_project_uuid, cmu_test_subject_uuid, OPENNEURO_PROJECT_URI, OPENNEURO_SUB_URI
+#
+#     if Path(REST_TEST_FILE).is_file():
+#         os.remove(REST_TEST_FILE)
+#     makeTestFile(filename=REST_TEST_FILE, params={'PROJECT_UUID': 'p1', 'PROJECT2_UUID': 'p2'})
+#
+#     for f in ['./cmu_a.nidm.ttl', 'caltech.nidm.ttl']:
+#         if Path(f).is_file():
+#             os.remove(f)
+#
+#     if not Path('./cmu_a.nidm.ttl').is_file():
+#         urllib.request.urlretrieve (
+#             "https://raw.githubusercontent.com/dbkeator/simple2_NIDM_examples/master/datasets.datalad.org/abide/RawDataBIDS/CMU_a/nidm.ttl",
+#             "cmu_a.nidm.ttl"
+#         )
+#
+#     if not Path('./caltech.nidm.ttl').is_file():
+#         urllib.request.urlretrieve (
+#             "https://raw.githubusercontent.com/dbkeator/simple2_NIDM_examples/master/datasets.datalad.org/abide/RawDataBIDS/Caltech/nidm.ttl",
+#             "caltech.nidm.ttl"
+#         )
+#
+#     restParser = RestParser(output_format=RestParser.OBJECT_FORMAT)
+#     projects = restParser.run(BRAIN_VOL_FILES, '/projects')
+#     for p in projects:
+#         proj_info = restParser.run(BRAIN_VOL_FILES, '/projects/{}'.format(p))
+#         if 'dctypes:title' in proj_info.keys() and proj_info['dctypes:title'] == 'ABIDE CMU_a Site':
+#             cmu_test_project_uuid = p
+#             break
+#     subjects = restParser.run(BRAIN_VOL_FILES, '/projects/{}/subjects'.format(cmu_test_project_uuid))
+#     cmu_test_subject_uuid = subjects['uuid'][0]
+#
+#
+#     if not Path('./ds000168.nidm.ttl').is_file():
+#         urllib.request.urlretrieve (
+#             "https://raw.githubusercontent.com/dbkeator/simple2_NIDM_examples/master/datasets.datalad.org/openneuro/ds000168/nidm.ttl",
+#             "ds000168.nidm.ttl"
+#         )
+#
+#     projects2 = restParser.run(OPENNEURO_FILES, '/projects')
+#     for p in projects2:
+#         proj_info = restParser.run(OPENNEURO_FILES, '/projects/{}'.format(p))
+#         if 'dctypes:title' in proj_info.keys() and proj_info['dctypes:title'] == 'Offline Processing in Associative Learning':
+#             OPENNEURO_PROJECT_URI = p
+#     subjects = restParser.run(OPENNEURO_FILES, '/projects/{}/subjects'.format(OPENNEURO_PROJECT_URI))
+#     OPENNEURO_SUB_URI = subjects['uuid'][0]
 
 
 def addData(acq, data):
@@ -160,6 +160,7 @@ def test_uri_subject_list():
     assert type(result) == dict
     assert type(result['subject']) == list
     assert len(result['subject']) > 10
+    assert (False)
 
 def test_uri_subject_list_with_fields():
     restParser = RestParser(output_format=RestParser.OBJECT_FORMAT)
@@ -180,7 +181,7 @@ def test_uri_subject_list_with_fields():
                 if result['fields'][sub][activity].value != 'n/a':
                     assert float(result['fields'][sub][activity].value) > 0
                     assert float(result['fields'][sub][activity].value) < 125
-    assert 'age' in all_fields
+    assert (('age' in all_fields) or ('age at scan' in all_fields))
     assert 'MagneticFieldStrength' in all_fields
 
 def test_uri_project_list():

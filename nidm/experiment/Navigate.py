@@ -1,12 +1,13 @@
 from nidm.core import Constants
 from nidm.experiment.Query import OpenGraph, URITail, trimWellKnownURIPrefix, getDataTypeInfo, ACQUISITION_MODALITY, \
-    IMAGE_CONTRAST_TYPE, IMAGE_USAGE_TYPE, TASK, expandUUID, matchPrefix
+    IMAGE_CONTRAST_TYPE, IMAGE_USAGE_TYPE, TASK, expandUUID, matchPrefix,sparql_query_nidm
 from rdflib import Graph, RDF, URIRef, util, term, Literal
 import functools
 import collections
 import nidm.experiment.CDE
 from nidm.experiment.Utils import validate_uuid
-
+import time
+from os import environ
 
 isa = URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')
 isPartOf = Constants.DCT['isPartOf']
@@ -136,17 +137,53 @@ def getSubject(nidm_file_tuples, acquisition_id):
     return None
 
 @functools.lru_cache(maxsize=QUERY_CACHE_SIZE)
-def getSubjects(nidm_file_tuples, project_id):
-    subjects = set([])
-    project_uri = expandID(project_id, Constants.NIIRI)
+def getSubjects(nidm_file_tuples, project_id=None):
+    start =time.time()
 
-    sessions = getSessions(nidm_file_tuples, project_uri)
-    for s in sessions:
-        acquisitions = getAcquisitions(nidm_file_tuples, s)
-        for acq in acquisitions:
-            sub = getSubject(nidm_file_tuples, acq)
-            subjects.add(sub)
-    return subjects
+    if 'BLAZEGRAPH_URL' in environ.keys():
+        filter = f'filter( ?proj = <{project_id}> )' if project_id else ''
+        query = f'''
+            PREFIX prov:<http://www.w3.org/ns/prov#>
+            PREFIX sio: <http://semanticscience.org/ontology/sio.owl#>
+            PREFIX ndar: <https://ndar.nih.gov/api/datadictionary/v2/dataelement/>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX nidm: <http://purl.org/nidash/nidm#>
+            PREFIX dct: <http://purl.org/dc/terms/> 
+    
+            SELECT DISTINCT ?uuid ?ID ?proj ?activity
+            WHERE {{
+              ?proj a nidm:Project . 
+              ?activity dct:isPartOf ?proj .
+                ?activity rdf:type prov:Activity ;
+                    prov:qualifiedAssociation _:blanknode .
+    
+                _:blanknode prov:hadRole {Constants.NIDM_PARTICIPANT} ;
+                     prov:agent ?uuid  .
+    
+                ?uuid {Constants.NIDM_SUBJECTID} ?ID .
+              
+                {filter}
+    
+            }}
+            '''
+
+        df = sparql_query_nidm(nidm_file_tuples, query)
+        result = df['uuid'].tolist()
+    else:
+        subjects = set([])
+        project_uri = expandID(project_id, Constants.NIIRI)
+
+        sessions = getSessions(nidm_file_tuples, project_uri)
+        for s in sessions:
+            acquisitions = getAcquisitions(nidm_file_tuples, s)
+            for acq in acquisitions:
+                sub = getSubject(nidm_file_tuples, acq)
+                subjects.add(sub)
+        result = subjects
+
+    end = time.time()
+    print(f"getSubjects took {end - start} seconds")
+    return result
 
 @functools.lru_cache(maxsize=QUERY_CACHE_SIZE)
 def getSubjectUUIDsfromID(nidm_file_tuples, sub_id):
@@ -180,20 +217,55 @@ def normalizeSingleSubjectToUUID(nidm_file_tuples, id):
 def getActivities(nidm_file_tuples, subject_id):
     activities = set([])
 
-    # if we were passed in a sub_id rather than a UUID, lookup the associated UUID. (we might get multiple!)
-    if validate_uuid(URITail(subject_id)):
-        sub_uris = [subject_id]
-    else:
-        sub_uris = getSubjectUUIDsfromID(nidm_file_tuples, subject_id)
+    start =time.time()
 
-    for file in nidm_file_tuples:
-        rdf_graph = OpenGraph(file)
-        for subject_uri in sub_uris:
-            subject_uri = expandID(subject_uri, Constants.NIIRI)
-            for blank_node in rdf_graph.subjects(predicate=Constants.PROV['agent'], object=subject_uri):
-                for activity in rdf_graph.subjects(predicate=Constants.PROV['qualifiedAssociation'], object=blank_node):
-                    if (activity, isa, Constants.PROV['Activity']) in rdf_graph:
-                        activities.add(activity)
+    if 'BLAZEGRAPH_URL' in environ.keys():
+        query = f'''
+            PREFIX prov:<http://www.w3.org/ns/prov#>
+            PREFIX sio: <http://semanticscience.org/ontology/sio.owl#>
+            PREFIX ndar: <https://ndar.nih.gov/api/datadictionary/v2/dataelement/>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX nidm: <http://purl.org/nidash/nidm#>
+            PREFIX dct: <http://purl.org/dc/terms/> 
+
+            SELECT DISTINCT ?activity
+            WHERE {{
+                ?activity rdf:type prov:Activity ;
+                    prov:qualifiedAssociation _:blanknode .
+
+                _:blanknode prov:hadRole {Constants.NIDM_PARTICIPANT} ;
+                     prov:agent ?sub_uuid  .
+
+                ?sub_uuid {Constants.NIDM_SUBJECTID} ?ID .
+
+                FILTER(?sub_uuid = <{subject_id}>)
+
+            }}
+            '''
+
+        df = sparql_query_nidm(nidm_file_tuples, query)
+        activities = df['activity'].tolist()
+
+    else:
+
+        # if we were passed in a sub_id rather than a UUID, lookup the associated UUID. (we might get multiple!)
+        if validate_uuid(URITail(subject_id)):
+            sub_uris = [subject_id]
+        else:
+            sub_uris = getSubjectUUIDsfromID(nidm_file_tuples, subject_id)
+
+        for file in nidm_file_tuples:
+            rdf_graph = OpenGraph(file)
+            for subject_uri in sub_uris:
+                subject_uri = expandID(subject_uri, Constants.NIIRI)
+                for blank_node in rdf_graph.subjects(predicate=Constants.PROV['agent'], object=subject_uri):
+                    for activity in rdf_graph.subjects(predicate=Constants.PROV['qualifiedAssociation'], object=blank_node):
+                        if (activity, isa, Constants.PROV['Activity']) in rdf_graph:
+                            activities.add(activity)
+
+    end = time.time()
+    print(f"getActivites took {end - start} seconds")
+
     return activities
 
 @functools.lru_cache(maxsize=QUERY_CACHE_SIZE)

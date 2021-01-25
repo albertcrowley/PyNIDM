@@ -389,7 +389,7 @@ class RestParser:
                         elif de.isAbout == "http://purl.obolibrary.org/obo/PATO_0002201":
                             hands.add(de.value)
 
-            print(Query.GetParticipantUUIDsForProject(self.nidm_files, project_uuid))
+            # print(Query.GetParticipantUUIDsForProject(self.nidm_files, project_uuid))
 
             project['age_max'] = max(ages) if len(ages) > 0 else 0
             project['age_min'] = min(ages) if len(ages) > 0 else 0
@@ -571,21 +571,33 @@ class RestParser:
 
     def subjects(self):
         self.restLog("Returning info about subjects",2)
-        projects = Navigate.getProjects(self.nidm_files)
         result = {'subject': []}
         if 'fields' in self.query and len(self.query['fields']) > 0:
             result['fields'] = {}
 
-        for proj in projects:
-            subs = Navigate.getSubjects(self.nidm_files, proj)
+        if 'BLAZEGRAPH_URL' in os.environ.keys():
+            subs = Navigate.getSubjects(self.nidm_files, None)
             for s in subs:
-                result['subject'].append( [Query.URITail(s), Navigate.getSubjectIDfromUUID(self.nidm_files, s) ])
+                result['subject'].append([Query.URITail(s), Navigate.getSubjectIDfromUUID(self.nidm_files, s)])
 
                 # print ("getting info for " + str(s))
-                x = self.getFieldInfoForSubject(proj, s)
+                x = self.getFieldInfoForSubject(None, s)
                 if x != {}:
                     result['fields'][Query.URITail(s)] = x
-        return self.subjectFormat(result)
+            return self.subjectFormat(result)
+        else:
+            projects = Navigate.getProjects(self.nidm_files)
+
+            for proj in projects:
+                subs = Navigate.getSubjects(self.nidm_files, proj)
+                for s in subs:
+                    result['subject'].append( [Query.URITail(s), Navigate.getSubjectIDfromUUID(self.nidm_files, s) ])
+
+                    # print ("getting info for " + str(s))
+                    x = self.getFieldInfoForSubject(proj, s)
+                    if x != {}:
+                        result['fields'][Query.URITail(s)] = x
+            return self.subjectFormat(result)
 
     def subjectSummary(self):
         match = re.match(r"^/?subjects/([^/]+)/?$", self.command)
